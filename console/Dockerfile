@@ -14,18 +14,21 @@ ENV PATH /root/.pnpm/bin:$PATH
 #ARG ENVIRONMENT=production
 ENV ENVIRONMENT=development
 
-# Conditional block for production
+# Copy pnpm-lock.yaml (or package.json) into the directory /app in the container
+COPY console/package.json console/pnpm-lock.yaml ./
+# Copy over .npmrc if applicable
+COPY console/.npmr[c] ./
+
 RUN if [ "$ENVIRONMENT" = "production" ]; then \
-  # Copy pnpm-lock.yaml (or package.json) into the directory /app in the container
-  cp console/package.json console/pnpm-lock.yaml ./ && \
-  # Copy over .npmrc if applicable
-  cp console/.npmrc ./ && \
-  # Install git
   apk update && apk add git openssh-client && \
   # Trust GitHub's RSA host key
-  mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && \
-  # Copy the console directory contents into the container at /app
-  cp -r console . && \
+  mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts; \
+fi
+
+# Copy the console directory contents into the container at /app
+COPY console* .
+
+RUN if [ "$ENVIRONMENT" = "production" ]; then \
   # Build the application
   pnpm build --environment $ENVIRONMENT && \
   npm install -g ember-cli pnpm  && \
@@ -33,7 +36,7 @@ RUN if [ "$ENVIRONMENT" = "production" ]; then \
 fi
 
 RUN if [ "$ENVIRONMENT" = "development" ]; then \
-  cp start.sh ./app && \
+  cp start.sh /app && \
   echo "Running in production mode"; \
   # List files in /app (or another directory) and output to the logs
   ls -l / && \
@@ -56,7 +59,7 @@ fi
 EXPOSE 4200
 
 # Copy the start script
-COPY --from=builder /app/start.sh ./app/start.sh
+COPY --from=builder --chmod=0755 /app/start.sh ./app/start.sh
 
 # Set the start script as the entry point
 CMD ["/app/start.sh"]
