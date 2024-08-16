@@ -7,48 +7,57 @@ WORKDIR /app
 # Create the pnpm directory and set the PNPM_HOME environment variable
 RUN mkdir -p ~/.pnpm
 ENV PNPM_HOME /root/.pnpm
-
-# Set environment
-ARG ENVIRONMENT=production
-
 # Add the pnpm global bin to the PATH
 ENV PATH /root/.pnpm/bin:$PATH
 
-# Copy pnpm-lock.yaml (or package.json) into the directory /app in the container
-COPY console/package.json console/pnpm-lock.yaml ./
+# Set environment
+#ARG ENVIRONMENT=production
+ENV ENVIRONMENT=development
 
-# Copy over .npmrc if applicable
-COPY console/.npmr[c] ./
+# Conditional block for production
+RUN if [ "$ENVIRONMENT" = "production" ]; then \
+  # Copy pnpm-lock.yaml (or package.json) into the directory /app in the container
+  cp console/package.json console/pnpm-lock.yaml ./ && \
+  # Copy over .npmrc if applicable
+  cp console/.npmrc ./ && \
+  # Install git
+  apk update && apk add git openssh-client && \
+  # Trust GitHub's RSA host key
+  mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && \
+  # Copy the console directory contents into the container at /app
+  cp -r console . && \
+  # Build the application
+  pnpm build --environment $ENVIRONMENT && \
+  npm install -g ember-cli pnpm  && \
+  pnpm install; \
+fi
+
+RUN if [ "$ENVIRONMENT" = "development" ]; then \
+  cp start.sh ./app && \
+  echo "Running in production mode"; \
+  # List files in /app (or another directory) and output to the logs
+  ls -l / && \
+  ls -l /app; \
+fi
 
 # Install global dependencies
-RUN npm install -g ember-cli pnpm 
-
-# Install git
-RUN apk update && apk add git openssh-client
-
-# Trust GitHub's RSA host key
-RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-# Install app dependencies
-RUN pnpm install
-
-# Copy the console directory contents into the container at /app
-COPY console .
-
-# Build the application
-RUN pnpm build --environment $ENVIRONMENT
-
 # ---- Serve Stage ----
 FROM nginx:alpine
 
-# Copy the built app to our served directory
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Conditional block for production
+RUN if [ "$ENVIRONMENT" = "production" ]; then \
+  # Copy the built app to our served directory
+  cp -r /app/dist /usr/share/nginx/html && \
+  # Use custom nginx.conf
+  cp console/nginx.conf /etc/nginx/conf.d/default.conf; \
+fi
 
-# Expose the port nginx is bound to
+## Expose the port nginx is bound to
 EXPOSE 4200
 
-# Use custom nginx.conf
-COPY console/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the start script
+COPY --from=builder /app/start.sh ./app/start.sh
 
-# Start Nginx server
-CMD ["nginx", "-g", "daemon off;"]
+# Set the start script as the entry point
+CMD ["/app/start.sh"]
+

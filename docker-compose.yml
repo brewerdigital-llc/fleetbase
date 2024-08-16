@@ -42,7 +42,7 @@ services:
     ports:
       - "4200:4200"
     volumes:
-      - ./console:/app/console
+      - ./console:/app
     build:
       context: .
       dockerfile: console/Dockerfile
@@ -69,6 +69,7 @@ services:
       MAIL_FROM_NAME: Fleetbase
       APP_NAME: Fleetbase
       LOG_CHANNEL: daily
+      MAIL_MAILER: log
     depends_on:
       - database
       - cache
