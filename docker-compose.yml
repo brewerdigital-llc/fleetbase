@@ -43,6 +43,7 @@ services:
       - "4200:4200"
     volumes:
       - ./console:/app
+      - ./packages:/packages
     build:
       context: .
       dockerfile: console/Dockerfile
@@ -57,6 +58,8 @@ services:
       args:
         ENVIRONMENT: development
         GITHUB_AUTH_KEY: ${GITHUB_AUTH_KEY}
+    volumes:
+      - ./packages:/packages
     environment:
       DATABASE_URL: "mysql://root@database/fleetbase"
       QUEUE_CONNECTION: redis

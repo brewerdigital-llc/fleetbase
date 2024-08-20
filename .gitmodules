@@ -1,5 +1,8 @@
-[submodule "packages/fleetops"]
-	path = packages/fleetops
+[submodule "api/packages/fleetops"]
+	path = api/packages/fleetops
+	url = git@github.com:brewerdigital-llc/fleetops.git
+[submodule "console/packages/fleetops"]
+	path = console/packages/fleetops
 	url = git@github.com:brewerdigital-llc/fleetops.git
 [submodule "packages/storefront"]
 	path = packages/storefront
@@ -7,8 +10,12 @@
 [submodule "packages/pallet"]
 	path = packages/pallet
 	url = git@github.com:brewerdigital-llc/pallet.git
-[submodule "packages/core-api"]
-	path = packages/core-api
+[submodule "api/packages/core-api"]
+	path = api/packages/core-api
+	url = git@github.com:brewerdigital-llc/core-api.git
+	branch = main
+[submodule "console/packages/core-api"]
+	path = console/packages/core-api
 	url = git@github.com:brewerdigital-llc/core-api.git
 	branch = main
 [submodule "packages/ember-core"]
